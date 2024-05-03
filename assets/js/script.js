@@ -1,5 +1,5 @@
 // Retrieve tasks and nextId from localStorage
-let taskList = JSON.parse(localStorage.getItem("tasks"));
+let taskList = JSON.parse(localStorage.getItem("tasks"))??[];
 let nextId = JSON.parse(localStorage.getItem("nextId"));
 const taskTitle = $('#taskTitle');
 const taskDescription = $('#taskDescription');
@@ -44,18 +44,35 @@ function createTaskCard(task) {
 // Todo: create a function to render the task list and make cards draggable
 function renderTaskList() {
     const todoList = $('#todo-cards');
+    todoList.empty();
     const inProgressList = $('#in-progress-cards');
+    inProgressList.empty();
     const doneList = $('#done-cards');
+    doneList.empty();
 
     for (let task of taskList) {
         if (task.status === 'to-do') {
-          todoList.append(createProjectCard(task));
-        } else if (project.status === 'in-progress') {
-          inProgressList.append(createProjectCard(task));
-        } else if (project.status === 'done') {
-          doneList.append(createProjectCard(task));
+          todoList.append(createTaskCard(task));
+        } else if (task.status === 'in-progress') {
+          inProgressList.append(createTaskCard(task));
+        } else if (task.status === 'done') {
+          doneList.append(createTaskCard(task));
         }
       }
+      $('.draggable').draggable({
+        opacity: 0.7,
+        zIndex: 100,
+        helper: function (e) {
+          const original = $(e.target).hasClass('ui-draggable')
+            ? $(e.target)
+            : $(e.target).closest('.ui-draggable');
+          // ? Return the clone with the width set to the width of the original card. This is so the clone does not take up the entire width of the lane. This is to also fix a visual bug where the card shrinks as it's dragged to the right.
+          return original.clone().css({
+            width: original.outerWidth(),
+          });
+        },
+    });
+    
 }
 
 // Todo: create a function to handle adding a new task
@@ -102,6 +119,9 @@ function handleDeleteTask(event){
         }
       });
     
+      localStorage.setItem('tasks', JSON.stringify(taskList));
+
+      renderTaskList();
 }
 
 // Todo: create a function to handle dropping a task into a new status lane
@@ -117,11 +137,22 @@ function handleDrop(event, ui) {
       }
     }
     localStorage.setItem('tasks', JSON.stringify(taskList));
+    renderTaskList();
 }
 
 // Todo: when the page loads, render the task list, add event listeners, make lanes droppable, and make the due date field a date picker
 $(document).ready(function () {
     renderTaskList();
-    
+
+    $('.lane').droppable({
+        accept: '.draggable',
+        drop: handleDrop,
+      });
+
+    //datepicker already used by date type
+    // $('#taskDueDate').datepicker({
+    //     changeMonth: true,
+    //     changeYear: true,
+    // });
 });
-$('.btn-primary').on('click', handleAddTask(), createTaskCard());
+$('#form').on('submit', handleAddTask);
